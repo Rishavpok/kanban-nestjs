@@ -27,8 +27,11 @@ export class TasksController {
   }
 
   @Delete(':id')
-  async delete( @Param('id') id : string , @Req() req : any  ) {
-    return this.taskService.deleteTask(Number(id), req.user.userId)
+  async delete(@Param('id') id: string, @Req() req: any) {
+    return this.taskService.deleteTask(
+      req.user.userId,   // ✅ userId first
+      Number(id)         // ✅ taskId second
+    );
   }
 
 }
