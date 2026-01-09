@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/auth.guards';
 import { TasksService } from './tasks.service';
 import { CreateTasksDto } from './dto/create-task.dto';
@@ -12,8 +12,8 @@ export class TasksController {
   constructor( private taskService : TasksService ) {}
 
   @Get()
-  async getTasks( @Req() req : any ) {
-    return this.taskService.getAllTasks( req.user.userId )
+  async getTasks(@Req() req: any, @Query() query: any) {
+    return this.taskService.getAllTasks( req.user.userId, query.status );
   }
 
   @Post()

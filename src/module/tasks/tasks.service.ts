@@ -7,9 +7,9 @@ import { UpdateTasksDto } from './dto/update-task.dto';
 export class TasksService {
   constructor(private prisma: PrismaService) {}
 
-  async getAllTasks( userId : number ) {
+  async getAllTasks( userId : number , status : string) {
     const tasks = await this.prisma.task.findMany({
-        where : { userId }
+        where : { userId ,  ...(status && { status }),},
     })
     return {
         data : tasks
