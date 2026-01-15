@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { RegisterDto } from './dto/register.dto';
 import * as bcrypt from 'bcrypt';
 import { loginDto } from './dto/login.dto';
+import { CreateUserDto } from './dto/AdminCreateUserDto';
 
 @Injectable()
 export class AuthService {
@@ -86,4 +87,38 @@ export class AuthService {
       },
     };
   }
+
+
+  async createUserByAdmin(createUser : CreateUserDto) {
+    const existingUser = await this.prisma.user.findFirst({
+      where: { email: createUser.email },
+    });
+
+    if (existingUser) {
+      throw new HttpException(
+        'Email already registered',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+
+    try {
+      const hashedPassword = await bcrypt.hash(createUser.password, 10);
+      const data = {
+        name: createUser.name,
+        email: createUser.email,
+        password: hashedPassword,
+        role : createUser.role,
+        status: createUser.status
+      };
+
+      return await this.prisma.user.create({ data });
+    } catch (e) {
+      throw new HttpException(
+        'Failed to register new user',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
 }
