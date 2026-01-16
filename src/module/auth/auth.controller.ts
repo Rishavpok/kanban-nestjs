@@ -1,4 +1,11 @@
-import { Body, Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { loginDto } from './dto/login.dto';
@@ -28,6 +35,13 @@ export class AuthController {
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   async createUserByAdmin(@Body() createUser: CreateUserDto) {
     return this.authService.createUserByAdmin(createUser);
+  }
+
+  @Get('admin/dashboard-stats')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  async  userInfo() {
+    return this.authService.getDashboardStats();
   }
 
 }

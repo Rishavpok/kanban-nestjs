@@ -45,4 +45,6 @@ model Task {
   description String
   status      String
   priority    String
+  createdAt   DateTime @default(now()) // <-- add this
+  updatedAt   DateTime @default(now()) @updatedAt
 }

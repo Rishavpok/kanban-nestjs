@@ -75,6 +75,7 @@ export class AuthService {
     const token = await this.jwtService.signAsync({
       sub: user.id,
       email: user.email,
+      role : user.role
     });
 
     return {
@@ -120,5 +121,57 @@ export class AuthService {
       );
     }
   }
+
+  async getDashboardStats() {
+    try {
+      const totalUsers = await this.prisma.user.count({
+        where: { role: 'USER' },
+      });
+
+      const activeUsers = await this.prisma.user.count({
+        where: {
+          role: 'USER',
+          status: 'ACTIVE',
+        },
+      });
+
+      const completedTasks = await  this.prisma.task.count({
+        where: { status: 'completed' },
+      })
+
+      const pendingTasks = await this.prisma.task.count({
+        where: {
+          OR: [
+            { status: 'inprogress' },
+            { status: 'todo' },
+          ],
+        },
+      });
+
+      const recentTasks = await  this.prisma.task.findMany({
+        orderBy: { createdAt : 'desc' },
+        take : 5
+      })
+
+      return {
+        "users" : {
+          "total" : totalUsers,
+          "active" : activeUsers
+        },
+        "tasks" : {
+          "completed" : completedTasks,
+          "pending" : pendingTasks,
+          "recent" : recentTasks,
+        }
+      }
+
+    } catch (e) {
+      throw new HttpException(
+        'Something went wrong',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
 
 }
