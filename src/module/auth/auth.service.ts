@@ -10,6 +10,7 @@ import { RegisterDto } from './dto/register.dto';
 import * as bcrypt from 'bcrypt';
 import { loginDto } from './dto/login.dto';
 import { CreateUserDto } from './dto/AdminCreateUserDto';
+import { UpdateAdminUser } from './dto/updateUserdto';
 
 @Injectable()
 export class AuthService {
@@ -75,7 +76,7 @@ export class AuthService {
     const token = await this.jwtService.signAsync({
       sub: user.id,
       email: user.email,
-      role : user.role
+      role: user.role,
     });
 
     return {
@@ -89,8 +90,7 @@ export class AuthService {
     };
   }
 
-
-  async createUserByAdmin(createUser : CreateUserDto) {
+  async createUserByAdmin(createUser: CreateUserDto) {
     const existingUser = await this.prisma.user.findFirst({
       where: { email: createUser.email },
     });
@@ -102,21 +102,98 @@ export class AuthService {
       );
     }
 
-
     try {
       const hashedPassword = await bcrypt.hash(createUser.password, 10);
       const data = {
         name: createUser.name,
         email: createUser.email,
         password: hashedPassword,
-        role : createUser.role,
-        status: createUser.status
+        role: createUser.role,
+        status: createUser.status,
       };
 
       return await this.prisma.user.create({ data });
     } catch (e) {
       throw new HttpException(
         'Failed to register new user',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getUserList() {
+    try {
+      const users = await this.prisma.user.findMany({
+        where: { role: 'USER' },
+      });
+
+      return {
+        data: users,
+      };
+    } catch (e) {
+      throw new HttpException(
+        'Something went wrong',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async updateUser(userId: any, user: UpdateAdminUser) {
+    const exisitingUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!exisitingUser) {
+      throw new HttpException(
+        'User not found',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+    try {
+      const updatedUser = await this.prisma.user.update({
+        where: { id: userId },
+        data: user, // this should match the fields in UpdateAdminUser DTO
+      });
+
+      return {
+        message: 'User data updated successfully',
+        user: updatedUser,
+      };
+    } catch (e) {
+      throw new HttpException(
+        'Something went wrong',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async deleteUser(userId: any) {
+    const exisitingUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    console.log(exisitingUser);
+    if (!exisitingUser) {
+      throw new HttpException(
+        'User not found',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    try {
+      // Delete related tasks first
+      await this.prisma.task.deleteMany({
+        where: { userId },
+      });
+
+      await this.prisma.user.delete({
+        where: { id: userId },
+      });
+
+      return {
+        message: 'User deleted Successfully',
+      };
+    } catch (e) {
+      throw new HttpException(
+        'Something went wrong',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -135,36 +212,32 @@ export class AuthService {
         },
       });
 
-      const completedTasks = await  this.prisma.task.count({
+      const completedTasks = await this.prisma.task.count({
         where: { status: 'completed' },
-      })
+      });
 
       const pendingTasks = await this.prisma.task.count({
         where: {
-          OR: [
-            { status: 'inprogress' },
-            { status: 'todo' },
-          ],
+          OR: [{ status: 'inprogress' }, { status: 'todo' }],
         },
       });
 
-      const recentTasks = await  this.prisma.task.findMany({
-        orderBy: { createdAt : 'desc' },
-        take : 5
-      })
+      const recentTasks = await this.prisma.task.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      });
 
       return {
-        "users" : {
-          "total" : totalUsers,
-          "active" : activeUsers
+        users: {
+          total: totalUsers,
+          active: activeUsers,
         },
-        "tasks" : {
-          "completed" : completedTasks,
-          "pending" : pendingTasks,
-          "recent" : recentTasks,
-        }
-      }
-
+        tasks: {
+          completed: completedTasks,
+          pending: pendingTasks,
+          recent: recentTasks,
+        },
+      };
     } catch (e) {
       throw new HttpException(
         'Something went wrong',
@@ -172,6 +245,4 @@ export class AuthService {
       );
     }
   }
-
-
 }
